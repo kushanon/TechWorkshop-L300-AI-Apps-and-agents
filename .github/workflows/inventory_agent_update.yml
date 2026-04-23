@@ -15,6 +15,10 @@ on:
       - '.github/workflows/deploy_foundry_agent.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   deploy-agent:
     uses: ./.github/workflows/deploy_foundry_agent.yml
