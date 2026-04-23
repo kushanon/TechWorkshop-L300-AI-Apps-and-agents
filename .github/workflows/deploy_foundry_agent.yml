@@ -62,7 +62,16 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install ./src
+          python - <<'PY'
+          import subprocess
+          import sys
+          import tomllib
+
+          with open('src/pyproject.toml', 'rb') as file:
+              dependencies = tomllib.load(file)['project']['dependencies']
+
+          subprocess.check_call([sys.executable, '-m', 'pip', 'install', *dependencies])
+          PY
 
       - name: Check whether agent already exists
         id: check-agent
