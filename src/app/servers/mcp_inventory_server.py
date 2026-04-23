@@ -15,7 +15,6 @@ else:
 # Add src directory to Python path
 src_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(src_path))
-from app.tools import product_recommendations, inventory_check, calculate_discount, create_image
 
 
 """
@@ -42,6 +41,8 @@ def get_product_recommendations(question: str) -> str:
     Returns:
         Product details including ID, name, category, description, image URL, and price
     """
+    from app.tools.aiSearchTools import product_recommendations
+
     results = product_recommendations(question)
     return json.dumps(results) if not isinstance(results, str) else results
 
@@ -56,6 +57,8 @@ def check_product_inventory(product_id: str) -> str:
     Returns:
         Inventory status and availability information
     """
+    from app.tools.inventoryCheck import inventory_check
+
     product_dict = {"id": product_id}
     result = inventory_check(product_dict)
     return json.dumps(result) if not isinstance(result, str) else result
@@ -71,6 +74,8 @@ def get_customer_discount(customer_id: str) -> str:
     Returns:
         Discount information including percentage and final amount
     """
+    from app.tools.discountLogic import calculate_discount
+
     result = calculate_discount(customer_id)
     return json.dumps(result) if not isinstance(result, str) else result
 
@@ -86,6 +91,8 @@ def generate_product_image(prompt: str, size: str = "1024x1024") -> str:
     Returns:
         URL or path to the generated image
     """
+    from app.tools.imageCreationTool import create_image
+
     result = create_image(prompt, size)
     return json.dumps(result) if not isinstance(result, str) else result
 
