@@ -1,0 +1,115 @@
+name: Reusable Foundry Agent Deploy
+
+on:
+  workflow_call:
+    inputs:
+      agent_name:
+        description: Foundry agent name.
+        required: true
+        type: string
+      agent_display_name:
+        description: Friendly name used in logs.
+        required: true
+        type: string
+      initializer_path:
+        description: Path to the Python initializer script.
+        required: true
+        type: string
+
+jobs:
+  deploy-agent:
+    name: Deploy ${{ inputs.agent_display_name }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: foundry-agent-${{ inputs.agent_name }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      FOUNDRY_ENDPOINT: ${{ secrets.FOUNDRY_ENDPOINT }}
+      FOUNDRY_API_VERSION: ${{ secrets.FOUNDRY_API_VERSION }}
+      GPT_ENDPOINT: ${{ secrets.GPT_ENDPOINT }}
+      GPT_DEPLOYMENT: ${{ secrets.GPT_DEPLOYMENT }}
+      GPT_API_VERSION: ${{ secrets.GPT_API_VERSION }}
+      EMBEDDING_ENDPOINT: ${{ secrets.EMBEDDING_ENDPOINT }}
+      EMBEDDING_DEPLOYMENT: ${{ secrets.EMBEDDING_DEPLOYMENT }}
+      EMBEDDING_API_VERSION: ${{ secrets.EMBEDDING_API_VERSION }}
+      COSMOS_ENDPOINT: ${{ secrets.COSMOS_ENDPOINT }}
+      DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+      CONTAINER_NAME: ${{ secrets.CONTAINER_NAME }}
+      APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}
+      STORAGE_ACCOUNT_NAME: ${{ secrets.STORAGE_ACCOUNT_NAME }}
+      STORAGE_CONTAINER_NAME: ${{ secrets.STORAGE_CONTAINER_NAME }}
+      OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: ${{ secrets.OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT }}
+      AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED: ${{ secrets.AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      gpt_endpoint: ${{ secrets.GPT_ENDPOINT }}
+      gpt_deployment: ${{ secrets.GPT_DEPLOYMENT }}
+      gpt_api_version: ${{ secrets.GPT_API_VERSION }}
+      embedding_endpoint: ${{ secrets.EMBEDDING_ENDPOINT }}
+      embedding_deployment: ${{ secrets.EMBEDDING_DEPLOYMENT }}
+      embedding_api_version: ${{ secrets.EMBEDDING_API_VERSION }}
+      storage_account_name: ${{ secrets.STORAGE_ACCOUNT_NAME }}
+      storage_container_name: ${{ secrets.STORAGE_CONTAINER_NAME }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Log in to Azure
+        uses: azure/login@v2.1.1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ./src
+
+      - name: Check whether agent already exists
+        id: check-agent
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          set +e
+          az rest \
+            --method GET \
+            --url "${FOUNDRY_ENDPOINT}/agents/${{ inputs.agent_name }}?api-version=v1" \
+            --resource "https://ai.azure.com" \
+            --output json > agent.json 2> agent.err
+          status=$?
+          set -e
+
+          if [ "$status" -eq 0 ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "${{ inputs.agent_display_name }} already exists. A new version will be created."
+            exit 0
+          fi
+
+          if grep -qiE '404|NotFound|ResourceNotFound' agent.err; then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "${{ inputs.agent_display_name }} does not exist yet. The initializer will create version 1."
+            exit 0
+          fi
+
+          cat agent.err
+          exit "$status"
+
+      - name: Create or update agent version
+        run: python "${{ inputs.initializer_path }}"
+
+      - name: Show deployed agent version
+        run: |
+          az rest \
+            --method GET \
+            --url "${FOUNDRY_ENDPOINT}/agents/${{ inputs.agent_name }}?api-version=v1" \
+            --resource "https://ai.azure.com" \
+            --query "{name:name,version:versions.latest.version,status:versions.latest.status,updated:versions.latest.created_at}" \
+            --output json

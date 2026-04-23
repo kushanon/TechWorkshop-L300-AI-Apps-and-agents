@@ -1,0 +1,27 @@
+name: Deploy Interior Designer Agent
+
+on:
+  push:
+    paths:
+      - 'src/prompts/InteriorDesignAgentPrompt.txt'
+      - 'src/prompts/aiSearchToolPrompt.txt'
+      - 'src/app/agents/interiorDesignAgent_initializer.py'
+      - 'src/app/agents/agent_initializer.py'
+      - 'src/app/agents/tool_definitions.py'
+      - 'src/app/servers/mcp_inventory_client.py'
+      - 'src/app/servers/mcp_inventory_server.py'
+      - 'src/app/tools/__init__.py'
+      - 'src/app/tools/aiSearchTools.py'
+      - 'src/app/tools/imageCreationTool.py'
+      - '.github/workflows/interior_designer_agent_update.yml'
+      - '.github/workflows/deploy_foundry_agent.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy-agent:
+    uses: ./.github/workflows/deploy_foundry_agent.yml
+    with:
+      agent_name: interior-designer
+      agent_display_name: Interior Designer Agent
+      initializer_path: src/app/agents/interiorDesignAgent_initializer.py
+    secrets: inherit

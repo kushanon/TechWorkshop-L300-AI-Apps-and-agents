@@ -1,0 +1,21 @@
+name: Deploy Cart Manager Agent
+
+on:
+  push:
+    paths:
+      - 'src/prompts/CartManagerPrompt.txt'
+      - 'src/app/agents/cartManagerAgent_initializer.py'
+      - 'src/app/agents/agent_initializer.py'
+      - 'src/app/agents/tool_definitions.py'
+      - '.github/workflows/cart_manager_agent_update.yml'
+      - '.github/workflows/deploy_foundry_agent.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy-agent:
+    uses: ./.github/workflows/deploy_foundry_agent.yml
+    with:
+      agent_name: cart-manager
+      agent_display_name: Cart Manager Agent
+      initializer_path: src/app/agents/cartManagerAgent_initializer.py
+    secrets: inherit

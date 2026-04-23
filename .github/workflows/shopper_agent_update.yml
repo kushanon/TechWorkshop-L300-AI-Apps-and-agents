@@ -1,0 +1,26 @@
+name: Deploy Shopper Agent
+
+on:
+  push:
+    paths:
+      - 'src/prompts/ShopperAgentPrompt.txt'
+      - 'src/prompts/aiSearchToolPrompt.txt'
+      - 'src/app/agents/shopperAgent_initializer.py'
+      - 'src/app/agents/agent_initializer.py'
+      - 'src/app/agents/tool_definitions.py'
+      - 'src/app/servers/mcp_inventory_client.py'
+      - 'src/app/servers/mcp_inventory_server.py'
+      - 'src/app/tools/__init__.py'
+      - 'src/app/tools/aiSearchTools.py'
+      - '.github/workflows/shopper_agent_update.yml'
+      - '.github/workflows/deploy_foundry_agent.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy-agent:
+    uses: ./.github/workflows/deploy_foundry_agent.yml
+    with:
+      agent_name: cora
+      agent_display_name: Shopper Agent
+      initializer_path: src/app/agents/shopperAgent_initializer.py
+    secrets: inherit

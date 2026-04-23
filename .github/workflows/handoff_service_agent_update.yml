@@ -1,0 +1,21 @@
+name: Deploy Handoff Service Agent
+
+on:
+  push:
+    paths:
+      - 'src/prompts/HandoffAgentPrompt.txt'
+      - 'src/app/agents/handoffAgent_initializer.py'
+      - 'src/app/agents/agent_initializer.py'
+      - 'src/services/handoff_service.py'
+      - '.github/workflows/handoff_service_agent_update.yml'
+      - '.github/workflows/deploy_foundry_agent.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy-agent:
+    uses: ./.github/workflows/deploy_foundry_agent.yml
+    with:
+      agent_name: handoff-service
+      agent_display_name: Handoff Service Agent
+      initializer_path: src/app/agents/handoffAgent_initializer.py
+    secrets: inherit
